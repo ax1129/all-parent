@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Spring的schema约束 -->
+<!--测试时schema头信息中可以配置 default-lazy-init="true" ，用于延迟加载，加速服务器启动，正式上线时需去除 -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" 
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd 
+		http://www.springframework.org/schema/mvc 
+		http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd 
+		http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context-3.2.xsd 
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop-3.2.xsd 
+		http://www.springframework.org/schema/tx 
+		http://www.springframework.org/schema/tx/spring-tx-3.2.xsd ">
+	
+	<!-- 启用自动注入 -->  
+   	<context:annotation-config />	
+	<!-- 开启事务注解 -->
+   	<tx:annotation-driven/>
+	<!-- 启用aspectj：Spring自动生成代理的框架，支持注解式AOP -->
+	<aop:aspectj-autoproxy/>	
+	<!-- 自动扫描包：读取包中类的注解，自动生成Bean配置 -->
+	<context:component-scan base-package="cn.demoncat.controller" />
+	<context:component-scan base-package="cn.demoncat.mapper" />
+	<context:component-scan base-package="cn.demoncat.service" />
+	<context:component-scan base-package="cn.demoncat.assist.aop" />  
+   
+	<!-- 加载数据库连接配置 -->
+	<!-- 可以引入多个properties，使用key的同不来区分是哪个properties的配置 -->
+	<context:property-placeholder location="classpath:config/jdbc.properties" />
+	
+	<!-- C3P0连接池配置(调用jdbc.properties中的配置) -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+		<property name="driverClass" value="${jdbc.driver}" />
+		<property name="jdbcUrl" value="${jdbc.url}" />
+		<property name="user" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+		<property name="maxPoolSize" value="${jdbc.maxPoolSize}" />
+		<property name="minPoolSize" value="${jdbc.minPoolSize}" />
+		<property name="initialPoolSize" value="${jdbc.initialPoolSize}" />
+		<property name="idleConnectionTestPeriod" value="${jdbc.idleConnectionTestPeriod}" />
+		<property name="acquireIncrement" value="${jdbc.acquireIncrement}" />
+		<property name="maxIdleTime" value="${jdbc.maxIdleTime}" />
+	</bean>
+	
+	<!-- 配置MyBatis的SqlSessionFactory -->
+	<bean id="sessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- 注入DataSource -->
+		<property name="dataSource" ref="dataSource" />
+		<!-- 配置TypeAlias(首字母小写的类名作为别名) -->
+		<property name="typeAliasesPackage" value="cn.demoncat.entity" />
+	</bean>
+	
+	<!-- 配置Mapper的包扫描器：自动创建Mapper接口的代理对象到Spring容器，bean的id为接口类名驼峰  -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<!-- 扫描mapper包：mapper接口和mapper.xml要在同一个目录下 -->
+		<property name="basePackage" value="cn.demoncat.mapper"/>
+	</bean>
+	
+	<!-- 配置事务管理器(Mybatis使用JDBC的事务管理器) -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+	
+	<!-- 配置事务通知(使用声明式配置，需要规范service的方法名) -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<!-- 针对service方法：增删改需要事务REQUIRED，查询支持事务SUPPORTS，其它没有事务 -->
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" />
+			<tx:method name="modify*" propagation="REQUIRED" />
+			<tx:method name="remove*" propagation="REQUIRED" />
+			<tx:method name="query*" propagation="SUPPORTS"  />
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- 配置AOP -->
+	<aop:config>
+		<!-- Service事务的切点和切面 -->
+		<aop:pointcut expression="within(cn.demoncat.service..*)" id="txPointcut" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut" />
+		
+	</aop:config>
+	
+</beans>

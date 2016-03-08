@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- spring.xml是springmvc.xml的父容器，所以在springmvc.xml中可以直接引用spring.xml中的bean。 -->
+<!-- Spring的schema约束 -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd 
+		http://www.springframework.org/schema/mvc 
+		http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd 
+		http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context-3.2.xsd 
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop-3.2.xsd " >
+		
+	<!-- 启用自动注入 -->  
+   	<context:annotation-config />	
+	
+	<!-- 启用mvc注解（启用注解式HandlerMapping和注解式HandlerAdapter，启用Jackson转换）；指定类型转换器(如果不启用mvc注解，配置在HandlerAdapter中) -->
+	<!-- 注解式HandlerMapping和HandlerAdapter的作用：Handler不需要实现接口，使用@Controller注解Handler类、@ResquestMapping注解URL -->
+	<mvc:annotation-driven conversion-service="conversionService" /> 
+	
+	<!-- 配置处理器（Handler，即Controller类，使用包扫描的方式将所有Handler交给spring管理） -->
+	<context:component-scan base-package="cn.demoncat.controller" />
+	
+	<!-- 视图解析器(解析View为真实视图) -->
+	<!-- JSP视图解析器：根据prefix和suffix，改变ModelAndView封装的视图名称为真实的视图路径(/view.jsp)，返回其JSP视图 -->
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+	
+	<!-- 文件解析器(上传图片和文件) -->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- 编码方式 -->
+		<property name="defaultEncoding" value="utf-8" />
+		<!-- 最大内存，即读取时缓冲区的大小 -->
+		<property name="maxInMemorySize" value="10240" />
+		<!-- 文件上传时的临时目录，即读取时缓冲文件的存放路径 -->
+		<property name="uploadTempDir" value="/upload/" />
+		<!-- 上传文件的最大限制(byte)，-1表示无穷大 -->
+		<property name="maxUploadSize" value="-1" />
+	</bean>
+	
+	<!-- 配置自定义的类型转换器(用于绑定形参时转换格式) -->
+	<bean id="conversionService" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+		<property name="converters">
+			<list>
+				<!-- 自定义的日期类型转换器 -->
+				<bean class="cn.demoncat.assist.converter.DateConverter" />
+				<!-- 自定义的字符串类型转换器(去除两边的空格，判断为""时返回null) -->
+				<bean class="cn.demoncat.assist.converter.StringConverter" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- 配置统一异常处理器 -->
+	<bean class="cn.demoncat.assist.exception.CustomExceptionResolver"></bean>
+	
+	<!-- 配置拦劫器 -->
+	<!-- 
+	<mvc:interceptors> 
+		拦截所有URL的全局拦劫器
+		<bean class="cn.demoncat.assist.interceptor.MyInterceptor1" />  
+		拦截指定URL的拦劫器，可以mapping多个URL
+		<mvc:interceptor> 
+			<mvc:mapping path="/test/*" /> 
+			<mvc:mapping path="/index/**"/> 
+			 <bean class="cn.demoncat.assist.interceptor.MyInterceptor2"></bean> 
+		</mvc:interceptor> 
+		拦截排除指定URL的拦劫器，可以mapping多个URL
+		<mvc:interceptor> 
+			<mvc:exclude-mapping path="/index/**"> 
+			<mvc:exclude-mapping path="/test/**"> 
+			 <bean class="cn.demoncat.assist.interceptor.MyInterceptor3"></bean> 
+		</mvc:interceptor> 
+	</mvc:interceptors>  -->
+	
+</beans>
